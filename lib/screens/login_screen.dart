@@ -1,22 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/auth_text_field.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      context.push('/dashboard');
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await ApiService.login(_emailCtrl.text, _passCtrl.text);
+      ref.read(authStateProvider.notifier).login();   // works with the new Notifier
+      if (mounted) context.go('/dashboard');
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -40,15 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Icon(Icons.school_rounded, size: 64, color: Colors.white),
                   const SizedBox(height: 16),
-                  Text(
-                    'Exora',
-                    style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 36),
-                  ),
+                  Text('Exora', style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 36)),
                   const SizedBox(height: 8),
-                  Text(
-                    'Sign in to continue',
-                    style: AppTextStyles.body.copyWith(color: Colors.white70),
-                  ),
+                  Text('Sign in to continue', style: AppTextStyles.body.copyWith(color: Colors.white70)),
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(24),
@@ -56,11 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
+                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
                       ],
                     ),
                     child: Form(
@@ -82,10 +89,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             obscure: true,
                             validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
                           ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 14)),
+                          ],
                           const SizedBox(height: 24),
                           ElevatedButton(
-                            onPressed: _login,
-                            child: const Text('Login'),
+                            onPressed: _loading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: _loading
+                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('Login'),
                           ),
                         ],
                       ),
@@ -94,10 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   TextButton(
                     onPressed: () => context.push('/register'),
-                    child: Text(
-                      "Don't have an account? Register",
-                      style: AppTextStyles.body.copyWith(color: Colors.white),
-                    ),
+                    child: Text("Don't have an account? Register", style: AppTextStyles.body.copyWith(color: Colors.white)),
                   ),
                 ],
               ),

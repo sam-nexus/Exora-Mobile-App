@@ -8,6 +8,7 @@ import 'screens/courses_screen.dart';
 import 'screens/exam_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/about_screen.dart';
+import 'screens/payment_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/welcome',
@@ -33,5 +34,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
     GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+    GoRoute(path: '/payment', builder: (_, __) => const PaymentScreen()),
   ],
 );
