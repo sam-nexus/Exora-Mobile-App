@@ -58,11 +58,28 @@ class _QuoteCarouselState extends State<QuoteCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Light theme: soft gradient with dark text; Dark theme: deep gradient with white text
+    final cardGradient = isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF2C2C54), Color(0xFF1B1B3A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [Color(0xFFF0F0FF), Color(0xFFE8E0F0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    final textColor = isDark ? Colors.white : const Color(0xFF2D2D2D);
+    final borderColor = isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.08);
+    final shadowColor = isDark ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.1);
+
     return GestureDetector(
-      onPanDown: (_) {
-        setState(() => _isUserInteracting = true);
-      },
+      onPanDown: (_) => setState(() => _isUserInteracting = true),
       onPanCancel: () {
         setState(() => _isUserInteracting = false);
         _startAutoSlide();
@@ -80,21 +97,12 @@ class _QuoteCarouselState extends State<QuoteCarousel> {
             duration: const Duration(milliseconds: 300),
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF2C2C54), const Color(0xFF1B1B3A)]
-                    : [const Color(0xFF2C2C54), const Color(0xFF1B1B3A)], // always dark cards
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: cardGradient,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.15),
-                width: 1,
-              ),
+              border: Border.all(color: borderColor, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                  color: shadowColor,
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -105,7 +113,7 @@ class _QuoteCarouselState extends State<QuoteCarousel> {
               child: Text(
                 widget.quotes[index],
                 style: AppTextStyles.heading2.copyWith(
-                  color: Colors.white,
+                  color: textColor,
                   fontStyle: FontStyle.italic,
                 ),
                 textAlign: TextAlign.center,

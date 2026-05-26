@@ -5,8 +5,14 @@ import '../theme.dart';
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
-  // Mock notifications
+  // Hardcoded notifications (new users see the welcome message first)
   final List<_NotificationItem> _notifications = const [
+    _NotificationItem(
+      icon: Icons.waving_hand,
+      title: 'Welcome to Exora!',
+      description: 'Thank you for joining. Explore your department courses and start preparing for your exit exam.',
+      time: 'Just now',
+    ),
     _NotificationItem(
       icon: Icons.assignment_turned_in,
       title: 'New Exam Added',
@@ -36,84 +42,110 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
+    try {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Notifications'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () => context.pop(),
+          ),
         ),
+        body: _notifications.isEmpty
+            ? const Center(
+                child: Text('No notifications yet.'),
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _notifications.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = _notifications[index];
+                  return _NotificationCard(item: item, theme: theme);
+                },
+              ),
+      );
+    } catch (e) {
+      // Graceful fallback – unlikely to happen with static data
+      return Scaffold(
+        appBar: AppBar(title: const Text('Notifications')),
+        body: const Center(
+          child: Text('Something went wrong displaying notifications.'),
+        ),
+      );
+    }
+  }
+}
+
+class _NotificationCard extends StatelessWidget {
+  final _NotificationItem item;
+  final ThemeData theme;
+
+  const _NotificationCard({required this.item, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _notifications.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final item = _notifications[index];
-          return Container(
-            padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: AppColors.primaryGradientStart.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: Icon(
+              item.icon,
+              color: AppColors.primaryGradientStart,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGradientStart.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    item.icon,
-                    color: AppColors.primaryGradientStart,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: AppTextStyles.heading2.copyWith(
-                          fontSize: 16,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.description,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Text(
-                  item.time,
+                  item.title,
+                  style: AppTextStyles.heading2.copyWith(
+                    fontSize: 16,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.description,
                   style: AppTextStyles.body.copyWith(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 14,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          const SizedBox(width: 8),
+          Text(
+            item.time,
+            style: AppTextStyles.body.copyWith(
+              fontSize: 12,
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,4 @@
-import 'package:exora/screens/notifications_screen.dart';
-import 'package:go_router/go_router.dart';
+import 'package:go_router/go_router.dart';         // ← add
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -8,11 +7,15 @@ import 'screens/courses_screen.dart';
 import 'screens/exam_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/about_screen.dart';
+import 'screens/notifications_screen.dart';
 import 'screens/payment_screen.dart';
+import 'screens/splash_screen.dart';             // ← add
+import 'screens/forgot_password_screen.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/welcome',
+  initialLocation: '/splash',                     // ← changed from '/welcome'
   routes: [
+    GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),   // ← new
     GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
@@ -35,5 +38,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
     GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
     GoRoute(path: '/payment', builder: (_, __) => const PaymentScreen()),
+    GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
   ],
 );

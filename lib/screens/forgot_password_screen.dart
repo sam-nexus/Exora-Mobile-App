@@ -1,50 +1,56 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/auth_text_field.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
+  String? _success;
 
-  Future<void> _login() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _loading = true;
       _error = null;
+      _success = null;
     });
 
     try {
-      await ApiService.login(_emailCtrl.text.trim(), _passCtrl.text);
-      ref.read(authStateProvider.notifier).login();
-      if (mounted) context.go('/dashboard');
+      final res = await http.post(
+        Uri.parse('https://exora-app-admin-dashboard.onrender.com/api/auth/forgot-password'),
+        body: jsonEncode({'email': _emailCtrl.text.trim()}),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        setState(() {
+          _success = 'Password reset link sent! Please check your email.';
+          _emailCtrl.clear();
+        });
+      } else {
+        final body = jsonDecode(res.body);
+        setState(() => _error = body['error'] ?? 'Request failed');
+      }
     } on SocketException {
-      setState(() => _error = 'Cannot connect to server. Please check your network.');
+      setState(() => _error = 'Cannot connect to server.');
     } on http.ClientException {
       setState(() => _error = 'Connection lost. Please try again.');
     } catch (e) {
-      final msg = e.toString().toLowerCase();
-      if (msg.contains('invalid')) {
-        setState(() => _error = 'Invalid email or password.');
-      } else {
-        setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
-      }
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -68,15 +74,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const Icon(Icons.school_rounded, size: 64, color: Colors.white),
+                  const Icon(Icons.lock_reset, size: 64, color: Colors.white),
                   const SizedBox(height: 16),
                   Text(
-                    'Exora',
-                    style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 36),
+                    'Forgot Password',
+                    style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 28),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue',
+                    'Enter your email and we\'ll send you a reset link.',
                     style: AppTextStyles.body.copyWith(color: Colors.white70),
                   ),
                   const SizedBox(height: 32),
@@ -104,14 +110,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             prefixIcon: Icons.email_outlined,
                             validator: (v) => v!.isEmpty ? 'Enter email' : null,
                           ),
-                          const SizedBox(height: 16),
-                          AuthTextField(
-                            controller: _passCtrl,
-                            hint: 'Password',
-                            prefixIcon: Icons.lock_outline,
-                            obscure: true,
-                            validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
-                          ),
                           if (_error != null) ...[
                             const SizedBox(height: 12),
                             Container(
@@ -135,47 +133,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ],
+                          if (_success != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.green.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _success!,
+                                      style: TextStyle(color: Colors.green.shade700, fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           ElevatedButton(
-                            onPressed: _loading ? null : _login,
+                            onPressed: _loading ? null : _submit,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: _loading
                                 ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
+                                    height: 20, width: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                   )
-                                : const Text('Login'),
+                                : const Text('Send Reset Link'),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // ---- Forgot Password link ----
+                  const SizedBox(height: 24),
                   TextButton(
-                    onPressed: () => context.push('/forgot-password'),
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.body.copyWith(color: Colors.white70),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Register link
-                  TextButton(
-                    onPressed: () => context.push('/register'),
-                    child: Text(
-                      "Don't have an account? Register",
-                      style: AppTextStyles.body.copyWith(color: Colors.white),
-                    ),
+                    onPressed: () => context.pop(),
+                    child: Text('Back to Login', style: AppTextStyles.body.copyWith(color: Colors.white)),
                   ),
                 ],
               ),

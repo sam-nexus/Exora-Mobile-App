@@ -5,6 +5,7 @@ class AuthTextField extends StatelessWidget {
   final String hint;
   final IconData prefixIcon;
   final bool obscure;
+  final readOnly;
   final String? Function(String?)? validator;
 
   const AuthTextField({
@@ -13,6 +14,7 @@ class AuthTextField extends StatelessWidget {
     required this.hint,
     required this.prefixIcon,
     this.obscure = false,
+    this.readOnly = false,
     this.validator,
   });
 

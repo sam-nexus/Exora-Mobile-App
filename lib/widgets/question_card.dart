@@ -62,8 +62,9 @@ class QuestionCard extends StatelessWidget {
 
               Color? bgColor;
               if (showResult) {
-                if (isCorrect) bgColor = AppColors.correct.withOpacity(0.2);
-                else if (isSelected && !isCorrect) bgColor = AppColors.wrong.withOpacity(0.2);
+                if (isCorrect) {
+                  bgColor = AppColors.correct.withOpacity(0.2);
+                } else if (isSelected && !isCorrect) bgColor = AppColors.wrong.withOpacity(0.2);
               } else if (isSelected) {
                 bgColor = AppColors.primaryGradientStart.withOpacity(0.1);
               }

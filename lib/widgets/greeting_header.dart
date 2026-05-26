@@ -1,16 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 
-class GreetingHeader extends StatelessWidget {
+class GreetingHeader extends StatefulWidget {
   const GreetingHeader({super.key});
+
+  @override
+  State<GreetingHeader> createState() => _GreetingHeaderState();
+}
+
+class _GreetingHeaderState extends State<GreetingHeader> {
+  String _userName = 'User';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('userName');
+    if (name != null && name.isNotEmpty) {
+      setState(() => _userName = name);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hour = DateTime.now().hour;
     String greeting = 'Good morning';
-    if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
-    else if (hour >= 17) greeting = 'Good evening';
+    if (hour >= 12 && hour < 17) {
+      greeting = 'Good afternoon';
+    } else if (hour >= 17) greeting = 'Good evening';
 
     return Row(
       children: [
@@ -28,7 +51,7 @@ class GreetingHeader extends StatelessWidget {
                 color: theme.textTheme.bodyLarge?.color,
               )),
               const SizedBox(height: 4),
-              Text('John Doe 👋', style: AppTextStyles.heading2.copyWith(
+              Text('$_userName 👋', style: AppTextStyles.heading2.copyWith(
                 color: theme.textTheme.headlineMedium?.color,
               )),
             ],
