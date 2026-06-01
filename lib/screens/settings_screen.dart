@@ -46,7 +46,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  // ------------- Edit Profile -------------
   Future<void> _updateProfile() async {
     if (!_profileFormKey.currentState!.validate()) return;
 
@@ -81,8 +80,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _profileLoading = false;
       });
     } catch (e) {
+      // Show the exact error from the server
       setState(() {
-        _profileError = 'Something went wrong. Please try again.';
+        _profileError = e.toString().replaceFirst('Exception: ', '');
         _profileLoading = false;
       });
     }
@@ -133,7 +133,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (msg.contains('incorrect')) {
         setState(() => _passwordError = 'Current password is incorrect.');
       } else {
-        setState(() => _passwordError = 'Something went wrong. Please try again.');
+        setState(
+          () => _passwordError = 'Something went wrong. Please try again.',
+        );
       }
       setState(() => _passwordLoading = false);
     }
@@ -186,17 +188,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: _emailCtrl,
                     hint: 'Email',
                     prefixIcon: Icons.email_outlined,
-                    readOnly: true,   // email is not editable
+                    readOnly: true, // email is not editable
                     validator: null,
                   ),
                   const SizedBox(height: 12),
                   if (_profileError != null) _buildErrorBanner(_profileError!),
-                  if (_profileSuccess != null) _buildSuccessBanner(_profileSuccess!),
+                  if (_profileSuccess != null)
+                    _buildSuccessBanner(_profileSuccess!),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _profileLoading ? null : _updateProfile,
                     child: _profileLoading
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Text('Save Changes'),
                   ),
                 ],
@@ -220,7 +230,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     hint: 'Current Password',
                     prefixIcon: Icons.lock_outline,
                     obscure: true,
-                    validator: (v) => v!.isEmpty ? 'Enter current password' : null,
+                    validator: (v) =>
+                        v!.isEmpty ? 'Enter current password' : null,
                   ),
                   const SizedBox(height: 16),
                   AuthTextField(
@@ -236,16 +247,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     hint: 'Confirm New Password',
                     prefixIcon: Icons.lock_open,
                     obscure: true,
-                    validator: (v) => v != _newPassCtrl.text ? 'Passwords do not match' : null,
+                    validator: (v) => v != _newPassCtrl.text
+                        ? 'Passwords do not match'
+                        : null,
                   ),
                   const SizedBox(height: 12),
-                  if (_passwordError != null) _buildErrorBanner(_passwordError!),
-                  if (_passwordSuccess != null) _buildSuccessBanner(_passwordSuccess!),
+                  if (_passwordError != null)
+                    _buildErrorBanner(_passwordError!),
+                  if (_passwordSuccess != null)
+                    _buildSuccessBanner(_passwordSuccess!),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _passwordLoading ? null : _changePassword,
                     child: _passwordLoading
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Text('Update Password'),
                   ),
                 ],
@@ -258,10 +280,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSectionTitle(String title, Color color) {
-    return Text(
-      title,
-      style: AppTextStyles.heading2.copyWith(color: color),
-    );
+    return Text(title, style: AppTextStyles.heading2.copyWith(color: color));
   }
 
   Widget _buildErrorBanner(String message) {
@@ -277,7 +296,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message, style: TextStyle(color: Colors.red.shade700, fontSize: 14)),
+            child: Text(
+              message,
+              style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+            ),
           ),
         ],
       ),
@@ -294,10 +316,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 20),
+          Icon(
+            Icons.check_circle_outline,
+            color: Colors.green.shade700,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message, style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
+            child: Text(
+              message,
+              style: TextStyle(color: Colors.green.shade700, fontSize: 14),
+            ),
           ),
         ],
       ),

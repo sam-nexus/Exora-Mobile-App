@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -18,7 +19,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
-  String? _success;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,21 +26,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _success = null;
     });
 
     try {
+      final url = 'https://exora-app-admin-dashboard.onrender.com/api/auth/mobile/forgot-password';
+
       final res = await http.post(
-        Uri.parse('https://exora-app-admin-dashboard.onrender.com/api/auth/forgot-password'),
+        Uri.parse(url),
         body: jsonEncode({'email': _emailCtrl.text.trim()}),
         headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 10));
+
 
       if (res.statusCode == 200) {
-        setState(() {
-          _success = 'Password reset link sent! Please check your email.';
-          _emailCtrl.clear();
-        });
+        // Navigate automatically to the verify‑code screen
+        if (mounted) {
+          context.push('/verify-reset-code?email=${Uri.encodeComponent(_emailCtrl.text.trim())}');
+        }
       } else {
         final body = jsonDecode(res.body);
         setState(() => _error = body['error'] ?? 'Request failed');
@@ -54,6 +56,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -78,11 +86,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Forgot Password',
-                    style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 28),
+                    style: AppTextStyles.heading1.copyWith(
+                      color: Colors.white,
+                      fontSize: 28,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter your email and we\'ll send you a reset link.',
+                    'Enter your email and we\'ll send you a verification code.',
+                    textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(color: Colors.white70),
                   ),
                   const SizedBox(height: 32),
@@ -121,35 +133,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red.shade700,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _error!,
-                                      style: TextStyle(color: Colors.red.shade700, fontSize: 14),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (_success != null) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.green.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle_outline, color: Colors.green.shade700, size: 20),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _success!,
-                                      style: TextStyle(color: Colors.green.shade700, fontSize: 14),
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -164,10 +160,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ),
                             child: _loading
                                 ? const SizedBox(
-                                    height: 20, width: 20,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
                                   )
-                                : const Text('Send Reset Link'),
+                                : const Text('Send Code'),
                           ),
                         ],
                       ),
@@ -176,7 +176,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 24),
                   TextButton(
                     onPressed: () => context.pop(),
-                    child: Text('Back to Login', style: AppTextStyles.body.copyWith(color: Colors.white)),
+                    child: Text(
+                      'Back to Login',
+                      style: AppTextStyles.body.copyWith(color: Colors.white),
+                    ),
                   ),
                 ],
               ),

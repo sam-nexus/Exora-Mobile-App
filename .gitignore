@@ -55,6 +55,7 @@ build/
 *.swo
 .DS_Store
 Thumbs.db
+pubspec.lock
 
 # iOS
 ios/Pods/

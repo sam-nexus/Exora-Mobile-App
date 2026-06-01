@@ -68,10 +68,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const Icon(Icons.school_rounded, size: 64, color: Colors.white),
+                  //const Icon(Icons.school_rounded, size: 64, color: Colors.white),
                   const SizedBox(height: 16),
                   Text(
-                    'Exora',
+                    'Login',
                     style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 36),
                   ),
                   const SizedBox(height: 8),

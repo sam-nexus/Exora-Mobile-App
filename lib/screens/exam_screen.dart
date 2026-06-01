@@ -22,19 +22,87 @@ class _ExamScreenState extends State<ExamScreen> {
   bool _loading = true;
   String? _error;
   bool _fromCache = false;
-  final Map<String, int?> _selected = {};
-  final Map<String, bool> _submitted = {};
+
+  // Persisted per‑question state
+  Map<String, int?> _selected = {};
+  Map<String, bool> _submitted = {};
+  int _correctCount = 0;
+  int _wrongCount = 0;
 
   String get _cacheKey => 'questions_cache_${widget.courseId}';
+  String get _stateKey => 'exam_state_${widget.courseId}';
+  String get _progressKey => 'progress_${widget.courseId}';
 
   @override
   void initState() {
     super.initState();
     _loadQuestions();
+    _loadPersistedState();
   }
 
+  // -------------------- Persistence --------------------
+  Future<void> _loadPersistedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stateData = prefs.getString(_stateKey);
+    if (stateData != null) {
+      try {
+        final decoded = jsonDecode(stateData) as Map<String, dynamic>;
+        setState(() {
+          _selected = (decoded['selected'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, v as int?),
+          ) ?? {};
+          _submitted = (decoded['submitted'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, v as bool),
+          ) ?? {};
+          _correctCount = decoded['correctCount'] ?? 0;
+          _wrongCount = decoded['wrongCount'] ?? 0;
+        });
+      } catch (_) {
+        _clearProgress(); // if corrupted, reset
+      }
+    }
+  }
+
+  Future<void> _savePersistedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_stateKey, jsonEncode({
+      'selected': _selected,
+      'submitted': _submitted,
+      'correctCount': _correctCount,
+      'wrongCount': _wrongCount,
+    }));
+    // Also store the simple progress for the courses screen, including total questions
+    await prefs.setString(_progressKey, jsonEncode({
+      'correct': _correctCount,
+      'wrong': _wrongCount,
+      'total': _questions.length,   // <-- NEW: total questions in this course
+    }));
+  }
+
+  void _clearProgress() {
+    setState(() {
+      _selected = {};
+      _submitted = {};
+      _correctCount = 0;
+      _wrongCount = 0;
+    });
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove(_stateKey);
+      prefs.remove(_progressKey);
+    });
+  }
+
+  void _recordAnswer(String questionId, bool isCorrect) {
+    if (isCorrect) {
+      _correctCount++;
+    } else {
+      _wrongCount++;
+    }
+    _savePersistedState();
+  }
+
+  // -------------------- Questions loading --------------------
   Future<void> _loadQuestions() async {
-    // 1. Load cached questions
     final cached = await _loadFromCache();
     if (cached != null) {
       setState(() {
@@ -43,8 +111,6 @@ class _ExamScreenState extends State<ExamScreen> {
         _fromCache = true;
       });
     }
-
-    // 2. Fetch fresh questions
     await _fetchFreshQuestions();
   }
 
@@ -56,13 +122,11 @@ class _ExamScreenState extends State<ExamScreen> {
     await _fetchFreshQuestions();
   }
 
-  // --------------- cache helpers -----------------------
   Future<List<Question>?> _loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(_cacheKey);
       if (jsonString == null) return null;
-
       final List<dynamic> list = jsonDecode(jsonString);
       return list.map((q) => Question(
         id: q['id'],
@@ -83,7 +147,6 @@ class _ExamScreenState extends State<ExamScreen> {
     } catch (_) {}
   }
 
-  // --------------- network fetch -----------------------
   Future<void> _fetchFreshQuestions() async {
     try {
       final data = await ApiService.getQuestions(widget.courseId);
@@ -95,7 +158,6 @@ class _ExamScreenState extends State<ExamScreen> {
         explanation: q['explanation'] ?? '',
       )).toList();
 
-      // Save fresh data to cache (in a simple format)
       final cacheData = data.map((q) => {
         'id': q['id'],
         'text': q['question_text'],
@@ -146,9 +208,13 @@ class _ExamScreenState extends State<ExamScreen> {
     }
   }
 
+  // -------------------- Build --------------------
   @override
   Widget build(BuildContext context) {
     final title = widget.courseName != null ? '${widget.courseName} Exams' : 'Exam';
+    final total = _questions.length;
+    final answered = _submitted.values.where((v) => v == true).length;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -156,6 +222,63 @@ class _ExamScreenState extends State<ExamScreen> {
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          if (answered > 0)
+            IconButton(
+              icon: const Icon(Icons.clear_all),
+              tooltip: 'Reset progress',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Reset Progress'),
+                    content: const Text('All answered questions and progress for this course will be cleared.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          _clearProgress();
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+        bottom: total > 0
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(40),
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(value: answered / total),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '$answered of $total answered (${(answered / total * 100).round()}%)',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.check, size: 14, color: Colors.green),
+                              Text('$_correctCount', style: const TextStyle(fontSize: 12)),
+                              const SizedBox(width: 12),
+                              const Icon(Icons.close, size: 14, color: Colors.red),
+                              Text('$_wrongCount', style: const TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : null,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -211,14 +334,13 @@ class _ExamScreenState extends State<ExamScreen> {
                         selectedIndex: _selected[q.id],
                         isSubmitted: _submitted[q.id]!,
                         onOptionSelected: (optionIndex) {
-                          if (!_submitted[q.id]!) {
-                            setState(() => _selected[q.id] = optionIndex);
-                          }
-                        },
-                        onSubmit: () {
-                          if (_selected[q.id] != null && !_submitted[q.id]!) {
-                            setState(() => _submitted[q.id] = true);
-                          }
+                          if (_submitted[q.id]!) return;
+                          final isCorrect = optionIndex == q.correctIndex;
+                          setState(() {
+                            _selected[q.id] = optionIndex;
+                            _submitted[q.id] = true;
+                          });
+                          _recordAnswer(q.id, isCorrect);
                         },
                       );
                     },
@@ -247,10 +369,7 @@ class _ExamScreenState extends State<ExamScreen> {
           Icon(icon, color: color.shade700, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _error!,
-              style: TextStyle(color: color.shade700, fontSize: 14),
-            ),
+            child: Text(_error!, style: TextStyle(color: color.shade700, fontSize: 14)),
           ),
         ],
       ),

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models.dart';
 import '../services/api_service.dart';
+import '../theme.dart';
 import '../widgets/course_card.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -21,6 +22,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
   bool _loading = true;
   String? _error;
   bool _fromCache = false;
+  // Now stores: { courseId: { 'correct': int, 'wrong': int, 'total': int } }
+  Map<String, Map<String, int>> _progressMap = {};
 
   String get _cacheKey => 'courses_cache_${widget.departmentId}';
 
@@ -28,11 +31,29 @@ class _CoursesScreenState extends State<CoursesScreen> {
   void initState() {
     super.initState();
     _loadCourses();
+    _loadAllProgress();
   }
 
-  /// Attempts to load from cache first, then fetches fresh data.
+  Future<void> _loadAllProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) => key.startsWith('progress_'));
+    final map = <String, Map<String, int>>{};
+    for (final key in keys) {
+      final data = prefs.getString(key);
+      if (data != null) {
+        final courseId = key.substring('progress_'.length);
+        final json = jsonDecode(data) as Map<String, dynamic>;
+        map[courseId] = {
+          'correct': json['correct'] ?? 0,
+          'wrong': json['wrong'] ?? 0,
+          'total': json['total'] ?? 0,   // NEW
+        };
+      }
+    }
+    setState(() => _progressMap = map);
+  }
+
   Future<void> _loadCourses() async {
-    // 1. Load cached courses
     final cached = await _loadFromCache();
     if (cached != null) {
       setState(() {
@@ -41,38 +62,21 @@ class _CoursesScreenState extends State<CoursesScreen> {
         _fromCache = true;
       });
     }
-
-    // 2. Fetch fresh data (keeps loading indicator if no cache yet)
     await _fetchFreshCourses();
   }
 
-  /// Manually retry fetching (called by pull-to-refresh or retry button).
-  // Future<void> _onRefresh() async {
-  //   setState(() {
-  //     _error = null;
-  //     _loading = _courses.isEmpty; // show spinner only if no data at all
-  //   });
-  //   await _fetchFreshCourses();
-  // }
-
-  // --------------- cache helpers -----------------------
   Future<List<Course>?> _loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(_cacheKey);
       if (jsonString == null) return null;
-
       final List<dynamic> list = jsonDecode(jsonString);
-      return list
-          .map(
-            (c) => Course(
-              id: c['id'],
-              departmentId: widget.departmentId,
-              name: c['name'],
-              isLocked: c['isLocked'] ?? true,
-            ),
-          )
-          .toList();
+      return list.map((c) => Course(
+        id: c['id'],
+        departmentId: widget.departmentId,
+        name: c['name'],
+        isLocked: c['isLocked'] ?? true,
+      )).toList();
     } catch (_) {
       return null;
     }
@@ -85,7 +89,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
     } catch (_) {}
   }
 
-  // --------------- network fetch -----------------------
   Future<void> _fetchFreshCourses() async {
     try {
       final deptCourses = await ApiService.getCourses(widget.departmentId);
@@ -97,26 +100,19 @@ class _CoursesScreenState extends State<CoursesScreen> {
       }
 
       final courses = deptCourses
-          .map(
-            (c) => Course(
-              id: c['id'],
-              departmentId: widget.departmentId,
-              name: c['name'],
-              isLocked: lockMap[c['id']] ?? true,
-            ),
-          )
+          .map((c) => Course(
+                id: c['id'],
+                departmentId: widget.departmentId,
+                name: c['name'],
+                isLocked: lockMap[c['id']] ?? true,
+              ))
           .toList();
 
-      // Save fresh data to cache
-      final cacheData = deptCourses
-          .map(
-            (c) => {
-              'id': c['id'],
-              'name': c['name'],
-              'isLocked': lockMap[c['id']] ?? true,
-            },
-          )
-          .toList();
+      final cacheData = deptCourses.map((c) => {
+        'id': c['id'],
+        'name': c['name'],
+        'isLocked': lockMap[c['id']] ?? true,
+      }).toList();
       await _saveToCache(cacheData);
 
       if (mounted) {
@@ -128,13 +124,33 @@ class _CoursesScreenState extends State<CoursesScreen> {
         });
       }
     } on SocketException {
-      _handleNetworkError('No internet connection. Pull down to retry.');
+      if (_courses.isEmpty) {
+        setState(() {
+          _error = 'No internet connection.';
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'You are offline. Showing cached data.';
+          _loading = false;
+        });
+      }
     } on http.ClientException {
-      _handleNetworkError('Could not reach the server. Pull down to retry.');
+      if (_courses.isEmpty) {
+        setState(() {
+          _error = 'Could not reach the server.';
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'Server unreachable. Showing cached data.';
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (_courses.isEmpty) {
         setState(() {
-          _error = 'Something went wrong. Pull down to retry.';
+          _error = 'Something went wrong. Tap to retry.';
           _loading = false;
         });
       } else {
@@ -146,32 +162,15 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-
-Future<void> _onRefresh() async {
-  // Clear the cache so we definitely fetch fresh data
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove(_cacheKey);
-
-  setState(() {
-    _error = null;
-    _loading = _courses.isEmpty;
-  });
-  await _fetchFreshCourses();
-}
-
-
-  void _handleNetworkError(String message) {
-    if (_courses.isEmpty) {
-      setState(() {
-        _error = message;
-        _loading = false;
-      });
-    } else {
-      setState(() {
-        _error = 'You are offline. Showing cached data.';
-        _loading = false;
-      });
-    }
+  Future<void> _onRefresh() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cacheKey);
+    _loadAllProgress();
+    setState(() {
+      _error = null;
+      _loading = _courses.isEmpty;
+    });
+    await _fetchFreshCourses();
   }
 
   @override
@@ -195,93 +194,83 @@ Future<void> _onRefresh() async {
       onRefresh: _onRefresh,
       child: Column(
         children: [
-          // Error banner
-          if (_error != null) _buildErrorBanner(),
+          if (_error != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              decoration: BoxDecoration(
+                color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade200 : Colors.red.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    (_fromCache || _courses.isNotEmpty) ? Icons.wifi_off : Icons.error_outline,
+                    color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade700 : Colors.red.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade700 : Colors.red.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh, // a new small method
-              child: _courses.isEmpty
-                  ? ListView(
-                      // must be a scrollable for RefreshIndicator to work
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.6,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.book_outlined,
-                                  size: 64,
-                                  color: Colors.grey.shade400,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No courses available.',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _onRefresh,
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Retry'),
-                                ),
-                              ],
-                            ),
+            child: _courses.isEmpty
+                ? ListView(
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.book_outlined, size: 64, color: Colors.grey.shade400),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No courses available.',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _onRefresh,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(24),
-                      itemCount: _courses.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 16),
-                      itemBuilder: (_, index) {
-                        final course = _courses[index];
-                        return CourseCard(
-                          course: course,
-                          onTap: course.isLocked
-                              ? () => context.push('/payment')
-                              : () => context.push(
-                                  '/exam/${course.id}?courseName=${Uri.encodeComponent(course.name)}',
-                                ),
-                        );
-                      },
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  
-
-  Widget _buildErrorBanner() {
-    final isWarning = _fromCache || _courses.isNotEmpty;
-    final color = isWarning ? Colors.orange : Colors.red;
-    final icon = isWarning ? Icons.wifi_off : Icons.error_outline;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-      decoration: BoxDecoration(
-        color: color.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color.shade700, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _error!,
-              style: TextStyle(color: color.shade700, fontSize: 14),
-            ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: _courses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    itemBuilder: (_, index) {
+                      final course = _courses[index];
+                      return CourseCard(
+                        course: course,
+                        onTap: course.isLocked
+                            ? () => context.push('/payment')
+                            : () => context.push(
+                                '/exam/${course.id}?courseName=${Uri.encodeComponent(course.name)}',
+                              ),
+                        progress: _progressMap[course.id],
+                      );
+                    },
+                  ),
           ),
         ],
       ),

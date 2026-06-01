@@ -22,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Bouncing animation for the logo
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 2500),
     )..repeat(reverse: true);
     _scaleAnimation = Tween<double>(begin: 0.9, end: 1.05).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
@@ -98,10 +98,16 @@ class _SplashScreenState extends State<SplashScreen>
                     color: Colors.white.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    size: 64,
-                    color: Colors.white,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.school_rounded,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),

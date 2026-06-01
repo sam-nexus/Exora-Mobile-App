@@ -8,7 +8,6 @@ class QuestionCard extends StatelessWidget {
   final int? selectedIndex;
   final bool isSubmitted;
   final ValueChanged<int> onOptionSelected;
-  final VoidCallback onSubmit;
 
   const QuestionCard({
     super.key,
@@ -17,23 +16,22 @@ class QuestionCard extends StatelessWidget {
     required this.selectedIndex,
     required this.isSubmitted,
     required this.onOptionSelected,
-    required this.onSubmit,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.only(bottom: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
       color: theme.colorScheme.surface,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Question number + text
+            // Question number + text (smaller font)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -41,6 +39,7 @@ class QuestionCard extends StatelessWidget {
                   '$questionNumber. ',
                   style: AppTextStyles.heading2.copyWith(
                     color: AppColors.primaryGradientStart,
+                    fontSize: 16,
                   ),
                 ),
                 Expanded(
@@ -48,12 +47,13 @@ class QuestionCard extends StatelessWidget {
                     question.text,
                     style: AppTextStyles.heading2.copyWith(
                       color: theme.colorScheme.onSurface,
+                      fontSize: 16,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Options
             ...List.generate(question.options.length, (index) {
               final isSelected = selectedIndex == index;
@@ -64,7 +64,9 @@ class QuestionCard extends StatelessWidget {
               if (showResult) {
                 if (isCorrect) {
                   bgColor = AppColors.correct.withOpacity(0.2);
-                } else if (isSelected && !isCorrect) bgColor = AppColors.wrong.withOpacity(0.2);
+                } else if (isSelected && !isCorrect) {
+                  bgColor = AppColors.wrong.withOpacity(0.2);
+                }
               } else if (isSelected) {
                 bgColor = AppColors.primaryGradientStart.withOpacity(0.1);
               }
@@ -73,12 +75,12 @@ class QuestionCard extends StatelessWidget {
                 onTap: showResult ? null : () => onOptionSelected(index),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                   decoration: BoxDecoration(
                     color: bgColor ?? (theme.brightness == Brightness.dark
                         ? Colors.grey.shade800
                         : Colors.grey.shade50),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: showResult && isCorrect
                           ? AppColors.correct
@@ -104,9 +106,9 @@ class QuestionCard extends StatelessWidget {
                                 : isSelected
                                     ? AppColors.primaryGradientStart
                                     : Colors.grey,
-                        size: 22,
+                        size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           question.options[index],
@@ -117,6 +119,7 @@ class QuestionCard extends StatelessWidget {
                                 : showResult && isSelected && !isCorrect
                                     ? AppColors.wrong
                                     : theme.colorScheme.onSurface,
+                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -125,28 +128,16 @@ class QuestionCard extends StatelessWidget {
                 ),
               );
             }),
-            const SizedBox(height: 12),
-            // Submit button
-            if (!isSubmitted && selectedIndex != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: onSubmit,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                  child: const Text('Check Answer'),
-                ),
-              ),
-            // Explanation
+            const SizedBox(height: 10),
+            // Explanation (shown after answer selection)
             if (isSubmitted)
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.primaryGradientStart.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.primaryGradientStart.withOpacity(0.3)),
                 ),
                 child: Column(
@@ -156,7 +147,7 @@ class QuestionCard extends StatelessWidget {
                       'Explanation',
                       style: AppTextStyles.heading2.copyWith(
                         color: AppColors.primaryGradientStart,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -164,6 +155,7 @@ class QuestionCard extends StatelessWidget {
                       question.explanation,
                       style: AppTextStyles.body.copyWith(
                         color: theme.colorScheme.onSurface,
+                        fontSize: 14,
                       ),
                     ),
                   ],
