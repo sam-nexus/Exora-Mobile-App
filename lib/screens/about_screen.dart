@@ -22,127 +22,197 @@ class AboutScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Logo
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.primaryGradientStart.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.school_rounded,
-                size: 56,
-                color: AppColors.primaryGradientStart,
+            // Logo & Name
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryGradientStart.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.school_rounded,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Exora',
+                    style: AppTextStyles.heading1.copyWith(
+                      color: AppColors.primaryGradientStart,
+                      fontSize: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Exit Exam Preparation Platform',
+                    style: AppTextStyles.body.copyWith(
+                      color: subtitleColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            // App name
-            Text(
-              'Exora',
-              style: AppTextStyles.heading1.copyWith(
-                color: AppColors.primaryGradientStart,
-                fontSize: 36,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Your Ultimate Exit Exam Preparation Companion',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.heading2.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // Description section
-            _buildSection(
+            // What is Exora? card
+            _buildInfoCard(
+              context,
+              icon: Icons.lightbulb_outline,
               title: 'What is Exora?',
-              content: 'Exora is a comprehensive mobile platform designed to help final‑year university students prepare for their exit exams. '
-                  'We provide a vast collection of past exit exams, model exams with detailed answer explanations, and a personalised learning experience '
-                  'that adapts to your department and course needs.',
-              titleColor: textColor,
-              textColor: subtitleColor,
+              content: 'A comprehensive platform for final‑year students preparing for exit exams with past papers, model exams, and detailed explanations.',
+              iconColor: Colors.amber,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
             ),
-            const SizedBox(height: 16),
-            _buildSection(
-              title: 'Key Features',
-              content: '• Access past exit exams and model exams\n'
-                  '• Department‑specific courses with lock/unlock control\n'
-                  '• Multiple‑choice questions with instant feedback and explanations\n'
-                  '• Secure payment verification to unlock premium content\n'
-                  '• Admin dashboard for content management and user oversight',
-              titleColor: textColor,
-              textColor: subtitleColor,
-            ),
-            const SizedBox(height: 16),
-            _buildSection(
-              title: 'How It Works',
-              content: '1. Create an account and select your department.\n'
-                  '2. Unlock your courses by submitting a payment receipt.\n'
-                  '3. Practice with model exams and track your progress.\n'
-                  '4. Review detailed explanations to strengthen your understanding.',
-              titleColor: textColor,
-              textColor: subtitleColor,
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Version info
+            // Key Features card
+            _buildInfoCard(
+              context,
+              icon: Icons.star_outline,
+              title: 'Key Features',
+              content: 'Past exams • Model exams • Instant feedback • Course materials • Progress tracking • Offline access',
+              iconColor: Colors.purple,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+            ),
+            const SizedBox(height: 14),
+
+            // How It Works card
+            _buildInfoCard(
+              context,
+              icon: Icons.rocket_launch_outlined,
+              title: 'How It Works',
+              content: 'Register → Unlock courses → Practice → Track your progress → Ace your exams!',
+              iconColor: Colors.teal,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+            ),
+            const SizedBox(height: 24),
+
+            // Version card
             Container(
-              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.primaryGradientStart.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primaryGradientStart.withOpacity(0.15)),
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.08)),
               ),
               child: Column(
                 children: [
                   Text(
                     'Version 1.0.0',
-                    style: AppTextStyles.body.copyWith(color: AppColors.primaryGradientStart, fontWeight: FontWeight.w600),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.primaryGradientStart,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Developed with ❤️ for students',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.body.copyWith(color: subtitleColor),
+                    style: AppTextStyles.body.copyWith(
+                      color: subtitleColor,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Error handling placeholder – if we ever fetch version/status from backend,
-            // we could show a retry button here. For now it’s static.
-            // The SingleChildScrollView ensures everything is reachable on smaller screens.
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection({
+  Widget _buildInfoCard(
+    BuildContext context, {
+    required IconData icon,
     required String title,
     required String content,
-    required Color titleColor,
+    required Color iconColor,
     required Color textColor,
+    required Color subtitleColor,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: AppTextStyles.heading2.copyWith(color: titleColor),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          content,
-          style: AppTextStyles.body.copyWith(color: textColor, height: 1.5),
-        ),
-      ],
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.heading2.copyWith(
+                    color: textColor,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  content,
+                  style: AppTextStyles.body.copyWith(
+                    color: subtitleColor,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

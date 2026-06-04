@@ -62,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
 
                     // Tagline
                     Text(
-                      'Your ultimate exit exam preparation companion.\nPast papers, model exams, and detailed explanations.',
+                      'Your ultimate exit exam preparation companion. Past papers, model exams, and detailed explanations.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.body.copyWith(
                         color: Colors.white.withOpacity(0.95),

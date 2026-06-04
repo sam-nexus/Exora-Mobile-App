@@ -34,11 +34,10 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateAfterCheck() async {
     // Wait at least 2 seconds so the splash is visible
     final results = await Future.wait([
-      Future.delayed(const Duration(seconds: 10)),
+      Future.delayed(const Duration(seconds: 8)),
       _checkAuth(),
     ]);
 
-    // results[1] is true if user is logged in
     final isLoggedIn = results[1] as bool;
 
     if (!mounted) return;
@@ -50,7 +49,6 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  /// Returns `true` if a valid token exists in SharedPreferences.
   Future<bool> _checkAuth() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -78,30 +76,26 @@ class _SplashScreenState extends State<SplashScreen>
             end: Alignment.bottomRight,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Animated logo
-              AnimatedBuilder(
-                animation: _scaleAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: child,
-                  );
-                },
-                child: Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
+        child: Stack(
+          children: [
+            // Center – animated logo and app name
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated logo without circle background
+                  AnimatedBuilder(
+                    animation: _scaleAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: child,
+                      );
+                    },
                     child: Image.asset(
                       'assets/images/logo.png',
-                      fit: BoxFit.cover,
+                      width: 110,
+                      height: 110,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.school_rounded,
                         size: 64,
@@ -109,52 +103,52 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 32),
+                  // App name
+                  Text(
+                    'Exora',
+                    style: AppTextStyles.heading1.copyWith(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
+            ),
 
-              // App name
-              Text(
-                'Exora',
-                style: AppTextStyles.heading1.copyWith(
-                  color: Colors.white,
-                  fontSize: 42,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -1,
+            // Bottom center – loading indicator and text
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 48),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading…',
+                        style: AppTextStyles.body.copyWith(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Tagline
-              Text(
-                'Your ultimate exit exam prep companion',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 48),
-
-              // Loading indicator
-              const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading your progress…',
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,7 +6,7 @@ class ApiService {
   static const String baseUrl = 'https://exora-app-admin-dashboard.onrender.com/api';
 
   // --------------- helpers ------------------
-  static Future<Map<String, String>> _headers() async {
+  static Future<Map<String, String>> headers() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
     return {
@@ -57,54 +56,64 @@ class ApiService {
 
   // --------------- departments & courses ---------------
   static Future<List<dynamic>> getDepartments() async {
-    final headers = await _headers();
+    final authHeaders = await headers();
     final res = await http.get(
       Uri.parse('$baseUrl/departments'),
-      headers: headers,
+      headers: authHeaders,
     ).timeout(const Duration(seconds: 60));
-    print('🔍 GET $baseUrl/departments → status ${res.statusCode}');
     if (res.statusCode == 200) return jsonDecode(res.body);
-    print('❌ Departments error body: ${res.body}');
-    throw Exception('Failed to load departments (${res.statusCode})');
+    throw Exception('Failed to load departments');
   }
 
-  static Future<List<dynamic>> getCourses(String departmentId) async {
-    final headers = await _headers();
-    final res = await http.get(
-      Uri.parse('$baseUrl/courses?department_id=$departmentId'),
-      headers: headers,
-    ).timeout(const Duration(seconds: 60));
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    throw Exception('Failed to load courses (${res.statusCode})');
-  }
+ static Future<List<dynamic>> getCourses(String departmentId, {String? type}) async {
+  final authHeaders = await headers();
+  var url = '$baseUrl/courses?department_id=$departmentId';
+  if (type != null) url += '&type=$type';
+  final res = await http.get(
+    Uri.parse(url),
+    headers: authHeaders,
+  ).timeout(const Duration(seconds: 60));
+  if (res.statusCode == 200) return jsonDecode(res.body);
+  throw Exception('Failed to load courses');
+}
+
+static Future<Map<String, dynamic>> getPaymentInfo() async {
+  final authHeaders = await headers();
+  final res = await http.get(
+    Uri.parse('$baseUrl/payments/info'),
+    headers: authHeaders,
+  ).timeout(const Duration(seconds: 30));
+  if (res.statusCode == 200) return jsonDecode(res.body);
+  throw Exception('Failed to load payment info');
+}
 
   static Future<List<dynamic>> getUserCourses() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId') ?? '';
-    final headers = await _headers();
+    final authHeaders = await headers();
     final res = await http.get(
       Uri.parse('$baseUrl/courses/user/$userId'),
-      headers: headers,
+      headers: authHeaders,
     ).timeout(const Duration(seconds: 60));
     if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception('Failed to load user courses');
   }
 
-  static Future<List<dynamic>> getQuestions(String courseId) async {
-    final headers = await _headers();
+  static Future<List<dynamic>> getQuestions(String courseId, {String questionType = 'course'}) async {
+    final authHeaders = await headers();
     final res = await http.get(
-      Uri.parse('$baseUrl/questions?course_id=$courseId'),
-      headers: headers,
+      Uri.parse('$baseUrl/questions?course_id=$courseId&question_type=$questionType'),
+      headers: authHeaders,
     ).timeout(const Duration(seconds: 60));
     if (res.statusCode == 200) return jsonDecode(res.body);
-    throw Exception('Failed to load questions (${res.statusCode})');
+    throw Exception('Failed to load questions');
   }
 
   static Future<void> changePassword(String email, String oldPassword, String newPassword) async {
-    final headers = await _headers();
+    final authHeaders = await headers();
     final res = await http.put(
       Uri.parse('$baseUrl/auth/change-password'),
-      headers: headers,
+      headers: authHeaders,
       body: jsonEncode({
         'email': email,
         'oldPassword': oldPassword,
@@ -117,10 +126,10 @@ class ApiService {
   }
 
   static Future<void> updateProfile(String userId, String fullName) async {
-    final headers = await _headers();
+    final authHeaders = await headers();
     final res = await http.put(
       Uri.parse('$baseUrl/users/$userId'),
-      headers: headers,
+      headers: authHeaders,
       body: jsonEncode({'full_name': fullName}),
     ).timeout(const Duration(seconds: 60));
     if (res.statusCode != 200) {

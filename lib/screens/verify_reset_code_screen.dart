@@ -32,7 +32,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
 
     try {
       final url = '${ApiService.baseUrl}/auth/mobile/verify-reset-code';
-      print('🔍 POST $url');
 
       final res = await http.post(
         Uri.parse(url),
@@ -42,9 +41,6 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
         }),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 60));
-
-      print('📬 Status: ${res.statusCode}');
-      print('📬 Body: ${res.body}');
 
       if (res.statusCode == 200) {
         if (mounted) {
@@ -86,11 +82,28 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 children: [
-                  const Icon(Icons.pin, size: 64, color: Colors.white),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+
+                  // Pin icon
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.pin,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Title
                   Text(
                     'Enter Code',
                     style: AppTextStyles.heading1.copyWith(
@@ -102,64 +115,81 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                   Text(
                     'Enter the 6‑digit code sent to\n${widget.email}',
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.body.copyWith(color: Colors.white70),
+                    style: AppTextStyles.body.copyWith(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 32),
+
+                  // Form card
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Code input
                         TextField(
                           controller: _codeCtrl,
                           keyboardType: TextInputType.number,
                           maxLength: 6,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                          style: TextStyle(
+                            fontSize: 26,
+                            letterSpacing: 10,
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
                           decoration: InputDecoration(
                             hintText: '000000',
-                            hintStyle: TextStyle(color: Colors.grey.shade400),
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 20,
+                              letterSpacing: 10,
+                            ),
                             counterText: '',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: AppColors.primaryGradientStart, width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 18),
                           ),
                         ),
+
+                        // Error message
                         if (_error != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: Colors.red.shade200),
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red.shade700,
-                                  size: 20,
-                                ),
+                                Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _error!,
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontSize: 14,
-                                    ),
+                                    style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                                   ),
                                 ),
                               ],
@@ -167,33 +197,66 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _loading ? null : _verifyCode,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+
+                        // Verify button – gradient matching background
+                        SizedBox(
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _verifyCode,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF1A1A3E), Color(0xFF0D0D2B)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Container(
+                                alignment: Alignment.center,
+                                child: _loading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Verify',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                              ),
+                            ),
                           ),
-                          child: _loading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Verify'),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
+                  // Back link
                   TextButton(
                     onPressed: () => context.pop(),
                     child: Text(
                       'Back',
-                      style: AppTextStyles.body.copyWith(color: Colors.white),
+                      style: AppTextStyles.body.copyWith(color: Colors.white, fontSize: 14),
                     ),
                   ),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),

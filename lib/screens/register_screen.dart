@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../theme.dart';
-import '../widgets/auth_text_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,6 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _error;
 
   Future<void> _register() async {
@@ -51,12 +52,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (msg.contains('already been registered')) {
         setState(() => _error = 'This email is already registered.');
       } else {
-        // Show the actual error message from the server
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -74,31 +83,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 children: [
-                  const Icon(Icons.person_add_alt, size: 64, color: Colors.white),
+                  const SizedBox(height: 20),
+
+                  // Logo
+                  Image.asset(
+                    'assets/images/logo.png',
+                    width: 80,
+                    height: 80,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.school_rounded,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 16),
+
+                  // Title
                   Text(
                     'Create Account',
-                    style: AppTextStyles.heading1.copyWith(color: Colors.white, fontSize: 28),
+                    style: AppTextStyles.heading1.copyWith(
+                      color: Colors.white,
+                      fontSize: 28,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Join Exora and start your prep',
-                    style: AppTextStyles.body.copyWith(color: Colors.white70),
+                    style: AppTextStyles.body.copyWith(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 32),
+
+                  // Form card
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
@@ -107,42 +135,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          AuthTextField(
+                          // Full Name
+                          _buildTextField(
                             controller: _nameCtrl,
                             hint: 'Full Name',
                             prefixIcon: Icons.person_outline,
-                            validator: (v) => v!.isEmpty ? 'Enter name' : null,
+                            validator: (v) => v!.isEmpty ? 'Enter your name' : null,
                           ),
                           const SizedBox(height: 16),
-                          AuthTextField(
+
+                          // Email
+                          _buildTextField(
                             controller: _emailCtrl,
                             hint: 'Email',
                             prefixIcon: Icons.email_outlined,
-                            validator: (v) => v!.isEmpty ? 'Enter email' : null,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (v) => v!.isEmpty ? 'Enter your email' : null,
                           ),
                           const SizedBox(height: 16),
-                          AuthTextField(
+
+                          // Password
+                          _buildTextField(
                             controller: _passCtrl,
                             hint: 'Password',
                             prefixIcon: Icons.lock_outline,
-                            obscure: true,
+                            obscure: _obscurePassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey.shade500,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
                             validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
                           ),
                           const SizedBox(height: 16),
-                          AuthTextField(
+
+                          // Confirm Password
+                          _buildTextField(
                             controller: _confirmCtrl,
                             hint: 'Confirm Password',
                             prefixIcon: Icons.lock_outline,
-                            obscure: true,
+                            obscure: _obscureConfirm,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey.shade500,
+                              ),
+                              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                            ),
                             validator: (v) => v != _passCtrl.text ? 'Passwords do not match' : null,
                           ),
+
+                          // Error message
                           if (_error != null) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: Colors.red.shade200),
                               ),
                               child: Row(
@@ -152,7 +204,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   Expanded(
                                     child: Text(
                                       _error!,
-                                      style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                                     ),
                                   ),
                                 ],
@@ -160,38 +212,111 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ],
                           const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: _loading ? null : _register,
-                            style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-                            child: _loading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Register'),
+
+                          // Register button – gradient matching background
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _register,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF1A1A3E), Color(0xFF0D0D2B)],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: _loading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Register',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
+                  // Login link
                   TextButton(
                     onPressed: () => context.push('/login'),
                     child: Text(
                       'Already have an account? Login',
-                      style: AppTextStyles.body.copyWith(color: Colors.white),
+                      style: AppTextStyles.body.copyWith(color: Colors.white, fontSize: 14),
                     ),
                   ),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // Helper to build text fields with consistent styling
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData prefixIcon,
+    bool obscure = false,
+    Widget? suffixIcon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: keyboardType,
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        prefixIcon: Icon(prefixIcon),
+        suffixIcon: suffixIcon,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.primaryGradientStart, width: 2),
+        ),
+      ),
+      validator: validator,
     );
   }
 }

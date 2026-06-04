@@ -11,7 +11,8 @@ import '../widgets/question_card.dart';
 class ExamScreen extends StatefulWidget {
   final String courseId;
   final String? courseName;
-  const ExamScreen({super.key, required this.courseId, this.courseName});
+  final String questionType;
+  const ExamScreen({super.key, required this.courseId, this.courseName, this.questionType = 'course'});
 
   @override
   State<ExamScreen> createState() => _ExamScreenState();
@@ -149,7 +150,7 @@ class _ExamScreenState extends State<ExamScreen> {
 
   Future<void> _fetchFreshQuestions() async {
     try {
-      final data = await ApiService.getQuestions(widget.courseId);
+      final data = await ApiService.getQuestions(widget.courseId, questionType: widget.questionType);
       final questions = data.map((q) => Question(
         id: q['id'],
         text: q['question_text'],

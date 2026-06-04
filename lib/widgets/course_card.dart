@@ -5,12 +5,18 @@ import '../theme.dart';
 class CourseCard extends StatelessWidget {
   final Course course;
   final VoidCallback? onTap;
+  final VoidCallback? onDownload;
+  final bool showDownloadIcon;
+  final bool isDownloaded;
   final Map<String, int>? progress;
 
   const CourseCard({
     super.key,
     required this.course,
     required this.onTap,
+    this.onDownload,
+    this.showDownloadIcon = false,
+    this.isDownloaded = false,
     this.progress,
   });
 
@@ -67,7 +73,20 @@ class CourseCard extends StatelessWidget {
                         fontSize: 15,
                       ),
                     ),
-                    if (!course.isLocked && totalQuestions > 0) ...[
+                    if (!course.isLocked && showDownloadIcon && isDownloaded) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 14, color: AppColors.correct),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Downloaded',
+                            style: TextStyle(fontSize: 11, color: AppColors.correct),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (!course.isLocked && !showDownloadIcon && totalQuestions > 0) ...[
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -98,10 +117,27 @@ class CourseCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // Icon area
               if (course.isLocked)
-                const Icon(Icons.lock, color: AppColors.lock)
+                const Icon(Icons.lock, color: AppColors.lock, size: 20)
+              else if (showDownloadIcon)
+                GestureDetector(
+                  onTap: onDownload,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDownloaded ? AppColors.correct.withOpacity(0.1) : AppColors.primaryGradientStart.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isDownloaded ? Icons.visibility : Icons.download,
+                      color: isDownloaded ? AppColors.correct : AppColors.primaryGradientStart,
+                      size: 22,
+                    ),
+                  ),
+                )
               else
-                const Icon(Icons.arrow_forward_ios, color: AppColors.primaryGradientStart, size: 16),
+                const Icon(Icons.arrow_forward_ios, color: AppColors.primaryGradientStart, size: 18),
             ],
           ),
         ),
