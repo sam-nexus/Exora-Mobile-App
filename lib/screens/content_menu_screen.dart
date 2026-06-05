@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../theme.dart';
 
 class ContentMenuScreen extends StatelessWidget {
   final String departmentId;
@@ -14,6 +15,8 @@ class ContentMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(departmentName),
@@ -27,13 +30,20 @@ class ContentMenuScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'What would you like to study?',
+              style: AppTextStyles.heading2.copyWith(
+                color: onSurface,
+                fontSize: 20,
+              ),
+            ),
             const SizedBox(height: 24),
             _buildOptionCard(
               context,
               icon: Icons.book,
               title: 'Course Materials',
               subtitle: 'Lecture notes, PDFs & references',
-              gradient: const [Color(0xFF6C63FF), Color(0xFF3F3D9E)],
+              iconColor: const Color(0xFF6C63FF),
               onTap: () =>
                   context.push('/courses/$departmentId?type=materials'),
             ),
@@ -42,7 +52,7 @@ class ContentMenuScreen extends StatelessWidget {
               icon: Icons.quiz,
               title: 'Course Questions',
               subtitle: 'Practice questions for each course',
-              gradient: const [Color(0xFFFF6584), Color(0xFFFF3D5A)],
+              iconColor: const Color(0xFFFF6584),
               onTap: () =>
                   context.push('/courses/$departmentId?type=questions'),
             ),
@@ -51,7 +61,7 @@ class ContentMenuScreen extends StatelessWidget {
               icon: Icons.assignment,
               title: 'Mock Exams',
               subtitle: 'Mock exam simulations',
-              gradient: const [Color(0xFF00BFA5), Color(0xFF009688)],
+              iconColor: const Color(0xFF00BFA5),
               onTap: () => context.push(
                 '/courses/$departmentId?type=questions&courseType=mock',
               ),
@@ -61,7 +71,7 @@ class ContentMenuScreen extends StatelessWidget {
               icon: Icons.school,
               title: 'Exit Exams',
               subtitle: 'Past exit exam papers',
-              gradient: const [Color(0xFFFFA726), Color(0xFFFB8C00)],
+              iconColor: const Color(0xFFFFA726),
               onTap: () => context.push(
                 '/courses/$departmentId?type=questions&courseType=exit',
               ),
@@ -77,25 +87,26 @@ class ContentMenuScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
-    required List<Color> gradient,
+    required Color iconColor,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: gradient.first.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -107,36 +118,39 @@ class ContentMenuScreen extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: Icon(icon, color: iconColor, size: 26),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.heading2.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 16,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                    style: AppTextStyles.body.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              size: 18,
+            ),
           ],
         ),
       ),

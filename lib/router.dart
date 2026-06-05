@@ -16,6 +16,7 @@ import 'screens/payment_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/verify_reset_code_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'screens/support_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -106,5 +107,6 @@ final appRouter = GoRouter(
       builder: (_, _) => const NotificationsScreen(),
     ),
     GoRoute(path: '/payment', builder: (_, _) => const PaymentScreen()),
+    GoRoute(path: '/support', builder: (_, _) => const SupportScreen()),
   ],
 );

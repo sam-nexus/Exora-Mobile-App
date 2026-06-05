@@ -6,12 +6,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models.dart';
 import '../services/api_service.dart';
+import '../theme.dart';
 import '../widgets/course_card.dart';
 
 class CoursesScreen extends StatefulWidget {
   final String departmentId;
   final String contentType; // 'materials' or 'questions'
-  final String? courseType; // 'regular', 'mock', 'exit'
+  final String? courseType; // null = regular, 'mock', 'exit'
   const CoursesScreen({
     super.key,
     required this.departmentId,
@@ -29,27 +30,19 @@ class _CoursesScreenState extends State<CoursesScreen> {
   String? _error;
   bool _fromCache = false;
   Map<String, Map<String, int>> _progressMap = {};
-  Map<String, bool> _downloadedMap = {};
 
   String get _cacheKey => 'courses_cache_${widget.departmentId}_${widget.courseType ?? widget.contentType}';
+
+  // Show progress only for questions/exams, not for materials
+  bool get _showProgress => widget.contentType == 'questions';
 
   @override
   void initState() {
     super.initState();
     _loadCourses();
-    _loadAllProgress();
-    _loadDownloadedStatus();
-  }
-
-  Future<void> _loadDownloadedStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = <String, bool>{};
-    for (final course in _courses) {
-      final key = 'downloaded_materials_${course.id}';
-      final data = prefs.getString(key);
-      map[course.id] = data != null && data.isNotEmpty;
+    if (_showProgress) {
+      _loadAllProgress();
     }
-    setState(() => _downloadedMap = map);
   }
 
   Future<void> _loadAllProgress() async {
@@ -68,7 +61,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         };
       }
     }
-    setState(() => _progressMap = map);
+    if (mounted) setState(() => _progressMap = map);
   }
 
   Future<void> _loadCourses() async {
@@ -109,7 +102,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   Future<void> _fetchFreshCourses() async {
     try {
-      final deptCourses = await ApiService.getCourses(widget.departmentId, type: widget.courseType);
+      final type = widget.courseType ?? 'regular';
+      final deptCourses = await ApiService.getCourses(widget.departmentId, type: type);
       final userCourses = await ApiService.getUserCourses();
 
       final lockMap = <String, bool>{};
@@ -138,57 +132,48 @@ class _CoursesScreenState extends State<CoursesScreen> {
           _fromCache = false;
           _error = null;
         });
-        _loadDownloadedStatus();
       }
     } on SocketException {
-      if (_courses.isEmpty) {
-        setState(() => _error = 'No internet connection.');
-      } else {
-        setState(() => _error = 'You are offline. Showing cached data.');
-      }
-      setState(() => _loading = false);
+      _handleNetworkError('No internet connection.');
     } on http.ClientException {
-      if (_courses.isEmpty) {
-        setState(() => _error = 'Could not reach the server.');
-      } else {
-        setState(() => _error = 'Server unreachable. Showing cached data.');
-      }
-      setState(() => _loading = false);
+      _handleNetworkError('Could not reach the server.');
     } catch (e) {
       if (_courses.isEmpty) {
-        setState(() => _error = 'Something went wrong. Tap to retry.');
+        setState(() { _error = 'Something went wrong. Pull down to retry.'; _loading = false; });
       } else {
-        setState(() => _error = 'Could not refresh. Showing cached data.');
+        setState(() { _error = 'You are offline. Showing cached data.'; _loading = false; });
       }
-      setState(() => _loading = false);
+    }
+  }
+
+  void _handleNetworkError(String msg) {
+    if (_courses.isEmpty) {
+      setState(() { _error = msg; _loading = false; });
+    } else {
+      setState(() { _error = 'You are offline. Showing cached data.'; _loading = false; });
     }
   }
 
   Future<void> _onRefresh() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cacheKey);
-    _loadAllProgress();
-    _loadDownloadedStatus();
-    setState(() {
-      _error = null;
-      _loading = _courses.isEmpty;
-    });
+    if (_showProgress) _loadAllProgress();
+    setState(() { _error = null; _loading = _courses.isEmpty; });
     await _fetchFreshCourses();
   }
 
   @override
   Widget build(BuildContext context) {
-    String title = widget.contentType == 'materials' ? 'Course Materials' : 'Course Questions';
+    String title = 'Courses';
+    if (widget.contentType == 'materials') title = 'Course Materials';
+    if (widget.contentType == 'questions') title = 'Course Questions';
     if (widget.courseType == 'mock') title = 'Mock Exams';
     if (widget.courseType == 'exit') title = 'Exit Exams';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios), onPressed: () => context.pop()),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -207,54 +192,26 @@ class _CoursesScreenState extends State<CoursesScreen> {
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               decoration: BoxDecoration(
-                color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade50 : Colors.red.shade50,
+                color: _fromCache ? Colors.orange.shade50 : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade200 : Colors.red.shade200,
-                ),
+                border: Border.all(color: _fromCache ? Colors.orange.shade200 : Colors.red.shade200),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    (_fromCache || _courses.isNotEmpty) ? Icons.wifi_off : Icons.error_outline,
-                    color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade700 : Colors.red.shade700,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(_error!, style: TextStyle(
-                      color: (_fromCache || _courses.isNotEmpty) ? Colors.orange.shade700 : Colors.red.shade700,
-                      fontSize: 14,
-                    )),
-                  ),
-                ],
-              ),
+              child: Row(children: [
+                Icon(_fromCache ? Icons.wifi_off : Icons.error_outline, color: _fromCache ? Colors.orange.shade700 : Colors.red.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(_error!, style: TextStyle(color: _fromCache ? Colors.orange.shade700 : Colors.red.shade700, fontSize: 14))),
+              ]),
             ),
           Expanded(
             child: _courses.isEmpty
-                ? ListView(
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.book_outlined, size: 64, color: Colors.grey.shade400),
-                              const SizedBox(height: 16),
-                              Text('No courses available.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: _onRefresh,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
+                ? ListView(children: [
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.6, child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.book_outlined, size: 64, color: Colors.grey.shade400), const SizedBox(height: 16),
+                      Text('No courses available.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(onPressed: _onRefresh, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+                    ]))),
+                  ])
                 : ListView.separated(
                     padding: const EdgeInsets.all(20),
                     itemCount: _courses.length,
@@ -263,8 +220,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       final course = _courses[index];
                       return CourseCard(
                         course: course,
-                        showDownloadIcon: widget.contentType == 'materials',
-                        isDownloaded: _downloadedMap[course.id] ?? false,
                         onTap: course.isLocked
                             ? () => context.push('/payment')
                             : () {
@@ -274,13 +229,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   context.push('/exam/${course.id}?courseName=${Uri.encodeComponent(course.name)}&type=course');
                                 }
                               },
-                        onDownload: widget.contentType == 'materials'
-                            ? () async {
-                                setState(() => _downloadedMap[course.id] = true);
-                                context.push('/materials/${course.id}?courseName=${Uri.encodeComponent(course.name)}');
-                              }
-                            : null,
-                        progress: _progressMap[course.id],
+                        progress: _showProgress ? _progressMap[course.id] : null,
                       );
                     },
                   ),

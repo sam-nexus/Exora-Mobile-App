@@ -7,9 +7,13 @@ import 'api_service.dart';
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-  static String? _fcmToken;
 
+  // Callback for when unread count changes
+  static void Function(int)? onUnreadCountChanged;
+  static bool _initialized = false;
   static Future<void> initialize() async {
+    if (_initialized) return;
+  _initialized = true;
     try {
       // Request permission
       NotificationSettings settings = await _messaging.requestPermission(
@@ -17,23 +21,20 @@ class NotificationService {
         badge: true,
         sound: true,
       );
-
       print('📱 Notification permission: ${settings.authorizationStatus}');
 
       // Get FCM token
-      _fcmToken = await _messaging.getToken();
-      print('📱 FCM Token: $_fcmToken');
+      final token = await _messaging.getToken();
+      print('📱 FCM Token: $token');
 
-      // Register device with backend
-      if (_fcmToken != null) {
-        await _registerDevice(_fcmToken!);
+      if (token != null) {
+        await _registerDevice(token);
       }
 
       // Listen for token refresh
-      _messaging.onTokenRefresh.listen((newToken) {
+      _messaging.onTokenRefresh.listen((newToken) async {
         print('🔄 FCM Token refreshed: $newToken');
-        _fcmToken = newToken;
-        _registerDevice(newToken);
+        await _registerDevice(newToken);
       });
 
       // Configure local notifications
@@ -74,12 +75,7 @@ class NotificationService {
           'platform': 'android',
         }),
       );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Device registered for push notifications');
-      } else {
-        print('⚠️ Device registration failed: ${response.statusCode} ${response.body}');
-      }
+      print('📱 Device registration: ${response.statusCode}');
     } catch (e) {
       print('⚠️ Device registration error: $e');
     }
@@ -87,15 +83,21 @@ class NotificationService {
 
   static void _handleForegroundMessage(RemoteMessage message) {
     print('📬 Foreground notification: ${message.notification?.title}');
-    print('📬 Data: ${message.data}');
-
+    
     _showLocalNotification(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: message.notification?.title ?? 'New Notification',
       body: message.notification?.body ?? '',
     );
+
+    // Refresh unread count
+    getUnreadCount().then((count) {
+      onUnreadCountChanged?.call(count);
+    });
   }
 
   static Future<void> _showLocalNotification({
+    required int id,
     required String title,
     required String body,
   }) async {
@@ -116,13 +118,7 @@ class NotificationService {
         iOS: iosDetails,
       );
 
-      await _localNotifications.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        title,
-        body,
-        details,
-      );
-
+      await _localNotifications.show(id, title, body, details);
       print('✅ Local notification shown: $title');
     } catch (e) {
       print('⚠️ Failed to show notification: $e');
@@ -131,7 +127,6 @@ class NotificationService {
 
   static void _handleNotificationTap(RemoteMessage message) {
     print('🔔 Notification tapped: ${message.data}');
-    // You can navigate based on data if needed
   }
 
   static Future<int> getUnreadCount() async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
+import '../services/notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,6 +44,8 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (isLoggedIn) {
+      NotificationService.initialize();
+    context.go('/dashboard');
       context.go('/dashboard');
     } else {
       context.go('/welcome');

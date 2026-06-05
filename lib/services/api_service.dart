@@ -136,4 +136,26 @@ static Future<Map<String, dynamic>> getPaymentInfo() async {
       throw Exception(jsonDecode(res.body)['error'] ?? 'Profile update failed');
     }
   }
+
+  static Future<void> submitSupportTicket(String subject, String message) async {
+  final authHeaders = await headers();
+  final res = await http.post(
+    Uri.parse('$baseUrl/support'),
+    headers: authHeaders,
+    body: jsonEncode({'subject': subject, 'message': message}),
+  ).timeout(const Duration(seconds: 30));
+  if (res.statusCode != 201) {
+    throw Exception(jsonDecode(res.body)['error'] ?? 'Failed to submit ticket');
+  }
+}
+
+static Future<List<dynamic>> getMySupportTickets() async {
+  final authHeaders = await headers();
+  final res = await http.get(
+    Uri.parse('$baseUrl/support/my'),
+    headers: authHeaders,
+  ).timeout(const Duration(seconds: 30));
+  if (res.statusCode == 200) return jsonDecode(res.body);
+  throw Exception('Failed to load tickets');
+}
 }

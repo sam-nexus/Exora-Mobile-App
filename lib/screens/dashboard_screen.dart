@@ -28,6 +28,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String? _error;
   bool _fromCache = false;
   int _unreadNotifications = 0;
+  bool _coursesUnlocked = false;
 
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
@@ -38,22 +39,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentTip = 0;
   Timer? _tipTimer;
 
-  final List<Map<String, dynamic>> _banners = const [
-    {
-      'icon': Icons.workspace_premium,
-      'title': 'Go Premium',
-      'subtitle': 'Unlock all courses & features',
-      'gradient': [Color(0xFFFFD700), Color(0xFFFFA500)],
-      'type': 'premium',
-    },
-    {
-      'icon': Icons.send,
-      'title': 'Join Telegram',
-      'subtitle': 'Get support & latest updates',
-      'gradient': [Color(0xFF0088CC), Color(0xFF006699)],
-      'type': 'telegram',
-    },
-  ];
+  List<Map<String, dynamic>> get _banners {
+    if (_coursesUnlocked) {
+      // Only show Telegram card
+      return const [
+        {
+          'icon': Icons.send,
+          'title': 'Join Telegram',
+          'subtitle': 'Get support & latest updates',
+          'gradient': [Color(0xFF0088CC), Color(0xFF006699)],
+          'type': 'telegram',
+        },
+      ];
+    }
+    // Show both cards
+    return const [
+      {
+        'icon': Icons.workspace_premium,
+        'title': 'Go Premium',
+        'subtitle': 'Unlock all courses & features',
+        'gradient': [Color(0xFFFFD700), Color(0xFFFFA500)],
+        'type': 'premium',
+      },
+      {
+        'icon': Icons.send,
+        'title': 'Join Telegram',
+        'subtitle': 'Get support & latest updates',
+        'gradient': [Color(0xFF0088CC), Color(0xFF006699)],
+        'type': 'telegram',
+      },
+    ];
+  }
 
   final List<Map<String, dynamic>> _studyTips = const [
     {
@@ -99,9 +115,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     _loadDepartments();
-    _startBannerTimer();
-    _startTipTimer();
     _loadUnreadCount();
+    _checkCoursesUnlocked();
+
+    NotificationService.onUnreadCountChanged = (count) {
+      if (mounted) setState(() => _unreadNotifications = count);
+    };
   }
 
   @override
@@ -112,24 +131,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.dispose();
   }
 
+  Future<void> _checkCoursesUnlocked() async {
+    try {
+      final userCourses = await ApiService.getUserCourses();
+      final anyUnlocked = userCourses.any((uc) => uc['is_locked'] == false);
+      if (mounted) {
+        setState(() {
+          _coursesUnlocked = anyUnlocked;
+        });
+        _startBannerTimer();
+        _startTipTimer();
+      }
+    } catch (_) {
+      _startBannerTimer();
+      _startTipTimer();
+    }
+  }
+
   Future<void> _loadUnreadCount() async {
     final count = await NotificationService.getUnreadCount();
     if (mounted) setState(() => _unreadNotifications = count);
   }
 
   void _startBannerTimer() {
+    _bannerTimer?.cancel();
+    if (_banners.length < 2) return;
     _bannerTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) {
+      if (mounted)
         setState(() => _currentBanner = (_currentBanner + 1) % _banners.length);
-      }
     });
   }
 
   void _startTipTimer() {
     _tipTimer = Timer.periodic(const Duration(seconds: 6), (timer) {
-      if (mounted) {
+      if (mounted)
         setState(() => _currentTip = (_currentTip + 1) % _studyTips.length);
-      }
     });
   }
 
@@ -137,7 +173,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (type == 'premium') {
       context.push('/payment');
     } else if (type == 'telegram') {
-      launchUrl(Uri.parse('https://t.me/YOUR_GROUP_USERNAME'));
+      launchUrl(Uri.parse('https://t.me/exora_mobile'));
     }
   }
 
@@ -200,34 +236,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           )
           .toList();
       await _saveToCache(data);
-      if (mounted) {
+      if (mounted)
         setState(() {
           _departments = departments;
           _loading = false;
           _fromCache = false;
           _error = null;
         });
-      }
     } on SocketException {
-      if (_departments.isEmpty) {
+      if (_departments.isEmpty)
         setState(() => _error = 'No internet connection.');
-      } else {
+      else
         setState(() => _error = 'You are offline. Showing cached data.');
-      }
       setState(() => _loading = false);
     } on http.ClientException {
-      if (_departments.isEmpty) {
+      if (_departments.isEmpty)
         setState(() => _error = 'Could not reach the server.');
-      } else {
+      else
         setState(() => _error = 'Server unreachable. Showing cached data.');
-      }
       setState(() => _loading = false);
     } catch (e) {
-      if (_departments.isEmpty) {
+      if (_departments.isEmpty)
         setState(() => _error = 'Something went wrong.');
-      } else {
+      else
         setState(() => _error = 'Could not refresh. Showing cached data.');
-      }
       setState(() => _loading = false);
     }
   }
@@ -270,7 +302,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () async {
                   await context.push('/notifications');
-                  _loadUnreadCount(); // refresh badge after viewing notifications
+                  _loadUnreadCount();
                 },
               ),
               if (_unreadNotifications > 0)
@@ -303,12 +335,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (value) {
-              if (value == 'settings') {
+              if (value == 'settings')
                 context.push('/settings');
-              } else if (value == 'about')
+              else if (value == 'about')
                 context.push('/about');
               else if (value == 'theme')
                 ref.read(themeModeProvider.notifier).toggle();
+              else if (value == 'support')
+                context.push('/support');
               else if (value == 'logout') {
                 ref.read(authStateProvider.notifier).logout();
                 context.go('/login');
@@ -329,6 +363,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('About'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'support',
+                child: ListTile(
+                  leading: Icon(Icons.support_agent),
+                  title: Text('Support'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -383,13 +426,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           children: [
                             const GreetingHeader(),
                             const SizedBox(height: 20),
-                            _buildSlidingCard(
-                              key: ValueKey(_currentBanner),
-                              data: _banners[_currentBanner],
-                              onTap: () => _onBannerTap(
-                                _banners[_currentBanner]['type'] as String,
+                            if (_banners.isNotEmpty)
+                              _buildSlidingCard(
+                                key: ValueKey(_currentBanner),
+                                data:
+                                    _banners[_currentBanner % _banners.length],
+                                onTap: () => _onBannerTap(
+                                  _banners[_currentBanner %
+                                          _banners.length]['type']
+                                      as String,
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 24),
                             Text(
                               'Select Department',

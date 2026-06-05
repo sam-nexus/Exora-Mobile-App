@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../theme.dart';
-
+import '../services/notification_service.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -41,6 +41,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration successful! Please login.')),
         );
+        // Initialize notifications after login
+      NotificationService.initialize();
         context.go('/login');
       }
     } on SocketException {
